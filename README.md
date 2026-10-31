@@ -1,24 +1,90 @@
-# PDPL RAG
+# PDPL-RAG: مساعد نظام حماية البيانات الشخصية
 
-A RAG (Retrieval-Augmented Generation) assistant that answers questions about the Saudi Personal Data Protection Law (PDPL), cites the article number, and replies "No text answers this question." when the law text does not contain the answer.
+تطبيق يجيب عن أسئلة **نظام حماية البيانات الشخصية السعودي (PDPL)** من نص النظام فقط. يذكر **رقم المادة والفقرة** في جوابه، ويرد بـ«لا يوجد نص يجيب عن هذا السؤال.» إذا لم يجد دليلاً في النص.
 
-> **Status:** work in progress. A first prototype answers from manually provided articles; retrieval over the full law is being built.
+> **تنبيه:** معلومات عامة من نص النظام وليست استشارة قانونية. الأجوبة مولّدة بالذكاء الاصطناعي وقد تحتوي على أخطاء، فراجع المصدر الرسمي.
 
-## Goal
+## الفكرة
 
-Answer questions only from the law text, never from the model's memory, and refuse when there is no evidence.
+بناء تطبيق **RAG** (Retrieval-Augmented Generation، أي التوليد المعزز بالاسترجاع): نبحث أولاً عن المواد المناسبة للسؤال، ثم نُعطيها للنموذج ليجيب منها وحدها، فلا يجيب من ذاكرته.
 
-## Planned stack
+## الهدف (Goal)
 
-Python, OpenAI API, ChromaDB, LangChain, Streamlit.
+- تطبيق عملي لأساسيات **LLM Applications**: Embeddings وVector Database وRetrieval وPrompt Design وEvaluation ثم Deployment.
+- نظام يستشهد بالمادة والفقرة، ويرفض عند غياب الدليل بدل أن يخمّن.
 
-## Source document
+## المصدر
 
-The project uses the English version of the PDPL published by SDAIA. The PDF is not included in this repository. Download it from:
-https://sdaia.gov.sa/en/SDAIA/about/Documents/Personal%20Data%20English%20V2-23April2023-%20Reviewed-.pdf
+نص «نظام حماية البيانات الشخصية» (المرسوم الملكي م/19 وتاريخ 1443/2/9هـ)، **المعدّل** بالمرسوم الملكي م/148 وتاريخ 1444/9/5هـ. نُسخ يوم 31-10-2026 من **منصة حوكمة البيانات الوطنية (سدايا):**
+https://dgp.sdaia.gov.sa/wps/portal/pdp/knowledgecenter/details/PDPL
 
-The Arabic text is the authoritative version of the law; the English text is a translation.
+43 مادة، والمادة 32 ملغاة (محفوظة بنص «مُلغاة» ليبقى الترقيم مطابقاً). المستودع لا يحتوي ملف PDF للنظام، والمواد بعد المعالجة في `articles.json`.
 
-## Disclaimer
+## طريقة العمل (Workflow)
 
-This tool provides general information only. It is not legal advice.
+```
+نص النظام → build_articles.py → articles.json (43 مادة)
+          → Embedding + تخزين في Chroma
+سؤال → Retrieval (أقرب 3 مواد) → Prompt + gpt-6-luna → جواب + المواد
+```
+
+1. **Chunking:** كل مادة قطعة واحدة، ومعها Metadata (رقم المادة وعنوانها).
+2. **Embedding:** تحويل كل مادة إلى متجه (Vector) بنموذج `text-embedding-3-large`.
+3. **Retrieval:** جلب أقرب 3 مواد من قاعدة **Chroma**.
+4. **Answer:** `gpt-6-luna` يجيب من المواد فقط، بتعليمات تُلزمه بذكر المادة والفقرة، والرفض عند غياب الدليل، وتجاهل أي أمر داخل السؤال يغيّر القواعد (Prompt Injection).
+
+## الأدوات والمهارات والمنصات
+
+| النوع | ما استخدمناه |
+|---|---|
+| اللغة والبيئة | Python 3.14، `venv`، VS Code |
+| النماذج (OpenAI API) | **الجواب:** `gpt-6-luna` — **التضمين:** `text-embedding-3-large` |
+| المكتبات | `openai`، `chromadb`، `streamlit`، `python-dotenv` (ومدمجة: `json`، `re`، `os`) |
+| قاعدة المتجهات | Chroma (محلية) |
+| الواجهة والنشر | Streamlit، Streamlit Community Cloud |
+| المنصات | GitHub، OpenAI Platform |
+| المهارات | Prompt Engineering، Semantic Search، Vector Database، RAG، Evaluation، Git/GitHub، Deployment، Debugging |
+| التعلّم والمساعدة | DataCamp، ومساعد ذكاء اصطناعي (Claude) للشرح والمراجعة |
+
+لم نستخدم LangChain؛ بُني الخط يدوياً لفهم كل مرحلة بنفسها.
+
+## التحديات وكيف حللناها
+
+- **اللغة العربية:** استخراج النص من PDF الأنظمة العربي يخرج بحروف معكوسة (جرّبنا `pypdf` و`PyMuPDF` والنسخ من المتصفح)، فاعتمدنا النص المنشور في المنصة.
+- **نسخة قديمة:** أول نص نسخناه كان قبل التعديل (مثلاً المادة 42 فيها «مائة وثمانين» يوماً)، فقارنّاه بملف سدايا المعدّل وأعدنا النسخ من مصدر معدّل.
+- **حروف غير مرئية وحرف التطويل:** تفرّق الكلمة الواحدة عند البحث، فحذفناها في `build_articles.py`.
+- **الخطأ 403 عند التضمين:** مشروع OpenAI يقيّد النماذج بقائمة مسموحة، فأضفنا نماذج التضمين.
+- **`gpt-6-luna` لا يقبل `temperature=0`:** استخدمنا القيمة الافتراضية، فصياغة الجواب قد تتغير بين تشغيلين.
+- **اختبار كل مرحلة قبل التي بعدها:** بدأنا بنموذج أولي (v0) يجيب من مادتين نكتبهما يدوياً للتأكد من الأساسيات (أزلناه من المستودع بعد ذلك)، ثم كتبنا سكربتات اختبار محلية للجواب والتضمين واستخراج النص العربي والاسترجاع.
+- **النشر:** مجلد قاعدة المتجهات غير مرفوع، فالتطبيق يبنيها من `articles.json` عند أول تشغيل.
+
+## التقييم (Evaluation)
+
+10 أسئلة (6 قريبة من النص، و2 بصياغة بعيدة، و2 خارج النطاق)، كُتبت مع المادة المتوقعة قبل التشغيل. **النتيجة: 10/10 في فحص `eval.py` الآلي، في تشغيلين.** الاسترجاع متطابق في التشغيلين، وصياغة الأجوبة تتغير قليلاً. المراجعة اليدوية على المواد: كلها مقبولة مع ملاحظات صغيرة (نتائج التشغيل الثاني في `eval_results.txt`). العينة صغيرة، والفحص الآلي لا يتحقق من صحة رقم الفقرة.
+
+## القيود
+
+- **اللوائح غير مشمولة:** اللائحة التنفيذية ولائحة نقل البيانات خارج التطبيق، فأسئلة مثل «مدة إشعار الاختراق» لا تُجاب.
+- **المادة 1:** تعريفاتها التسعة عشر في قطعة واحدة، فتضعف أسئلة تعريف مصطلح محدد.
+- **الخصوصية:** الأسئلة تُرسل إلى OpenAI، فلا تُدخل بيانات شخصية.
+- **حدود الواجهة:** 10 أسئلة للجلسة، و300 حرف للسؤال، و500 إجمالاً.
+
+## تشغيل المشروع محلياً
+
+```bash
+git clone https://github.com/DaKsT5/pdpl-rag.git
+cd pdpl-rag
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+انسخ `.env.example` إلى `.env` وضع مفتاح OpenAI فيه، ثم: `python v1.py` لبناء القاعدة، و`streamlit run app.py` للواجهة، و`python eval.py` للتقييم.
+
+## الملفات
+
+`app.py` (الواجهة) · `v1.py` (ingest / retrieve / answer) · `build_articles.py` · `articles.json` · `eval.py` · `eval_results.txt` · `requirements.txt` · `.env.example`
+
+## المطوّر
+
+عبدالعزيز أبوحيمد
