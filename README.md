@@ -31,7 +31,7 @@ https://dgp.sdaia.gov.sa/wps/portal/pdp/knowledgecenter/details/PDPL
 | الواجهة والنشر | Streamlit، Streamlit Community Cloud |
 | المنصات | GitHub، OpenAI Platform |
 | المهارات | Prompt Engineering، Semantic Search، Vector Database، RAG، Evaluation، Git/GitHub، Deployment، Debugging |
-| التعلّم والمساعدة | DataCamp، ومساعد ذكاء اصطناعي (Claude) للشرح والمراجعة |
+| التعلّم والمهارات وكتابة الأكواد | التعلّم من مسار **Associate AI Engineer for Developers** على DataCamp، والشرح والمراجعة من **Claude** |
 
 لم نستخدم LangChain؛ بُني الخط يدوياً لفهم كل مرحلة بنفسها.
 
