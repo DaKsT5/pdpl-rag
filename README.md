@@ -20,19 +20,6 @@ https://dgp.sdaia.gov.sa/wps/portal/pdp/knowledgecenter/details/PDPL
 
 43 مادة، والمادة 32 ملغاة (محفوظة بنص «مُلغاة» ليبقى الترقيم مطابقاً). المستودع لا يحتوي ملف PDF للنظام، والمواد بعد المعالجة في `articles.json`.
 
-## طريقة العمل (Workflow)
-
-```
-نص النظام → build_articles.py → articles.json (43 مادة)
-          → Embedding + تخزين في Chroma
-سؤال → Retrieval (أقرب 3 مواد) → Prompt + gpt-6-luna → جواب + المواد
-```
-
-1. **Chunking:** كل مادة قطعة واحدة، ومعها Metadata (رقم المادة وعنوانها).
-2. **Embedding:** تحويل كل مادة إلى متجه (Vector) بنموذج `text-embedding-3-large`.
-3. **Retrieval:** جلب أقرب 3 مواد من قاعدة **Chroma**.
-4. **Answer:** `gpt-6-luna` يجيب من المواد فقط، بتعليمات تُلزمه بذكر المادة والفقرة، والرفض عند غياب الدليل، وتجاهل أي أمر داخل السؤال يغيّر القواعد (Prompt Injection).
-
 ## الأدوات والمهارات والمنصات
 
 | النوع | ما استخدمناه |
@@ -68,18 +55,6 @@ https://dgp.sdaia.gov.sa/wps/portal/pdp/knowledgecenter/details/PDPL
 - **المادة 1:** تعريفاتها التسعة عشر في قطعة واحدة، فتضعف أسئلة تعريف مصطلح محدد.
 - **الخصوصية:** الأسئلة تُرسل إلى OpenAI، فلا تُدخل بيانات شخصية.
 - **حدود الواجهة:** 10 أسئلة للجلسة، و300 حرف للسؤال، و500 إجمالاً.
-
-## تشغيل المشروع محلياً
-
-```bash
-git clone https://github.com/DaKsT5/pdpl-rag.git
-cd pdpl-rag
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-انسخ `.env.example` إلى `.env` وضع مفتاح OpenAI فيه، ثم: `python v1.py` لبناء القاعدة، و`streamlit run app.py` للواجهة، و`python eval.py` للتقييم.
 
 ## الملفات
 
