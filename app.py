@@ -1,6 +1,6 @@
 import streamlit as st
 
-from v1 import answer
+from v1 import answer, ingest
 
 MAX_QUESTIONS = 10
 MAX_CHARS = 300
@@ -12,18 +12,30 @@ def total_counter():
     return {"count": 0}
 
 
+@st.cache_resource
+def prepare_database():
+    return ingest()
+
+
 st.set_page_config(page_title="PDPL RAG", page_icon="⚖️")
 
 st.markdown(
     """
     <style>
     .stApp { direction: rtl; }
-    .stTextInput input { direction: rtl; text-align: right; }
+    .stTextArea textarea { direction: rtl; text-align: right; }
     [data-testid="stMarkdownContainer"] { text-align: right; }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+try:
+    with st.spinner("جارٍ تجهيز قاعدة المواد (أول تشغيل فقط)..."):
+        prepare_database()
+except Exception:
+    st.error("تعذّر تجهيز قاعدة المواد. حاول لاحقاً.")
+    st.stop()
 
 st.title("مساعد نظام حماية البيانات الشخصية")
 st.caption("معلومات مستمدة من نص نظام حماية البيانات الشخصية السعودي (النسخة المعدّلة)، وليست استشارة قانونية.")
@@ -33,7 +45,7 @@ if "asked" not in st.session_state:
     st.session_state.asked = 0
 
 counter = total_counter()
-question = st.text_input("اكتب سؤالك عن النظام", max_chars=MAX_CHARS)
+question = st.text_area("اكتب سؤالك عن النظام", max_chars=MAX_CHARS, height=110)
 
 if st.button("اسأل") and question.strip():
     if st.session_state.asked >= MAX_QUESTIONS:
